@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quiz Arena</title>
+<style>
+  :root{
+    --bg: #12132a; --panel: #1b1d3d; --panel-2: #23254a; --line: #34366a;
+    --text: #f4f2ea; --muted: #a6a8c9; --accent: #ff6b5e; --good: #35c98c; --bad: #ff5470;
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; background: var(--bg); color: var(--text); min-height:100%; }
+  body{ padding: 28px 16px 60px; }
+  h1,h2,h3{ font-family: ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif; margin:0; }
+  h1{ font-size: 30px; font-weight: 800; letter-spacing: -0.01em; }
+  h2{ font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+  h3{ font-size: 16px; font-weight: 700; }
+  p{ margin: 0; color: var(--muted); line-height: 1.5; }
+  .wrap{ max-width: 640px; margin: 0 auto; }
+  .stack{ display:flex; flex-direction:column; gap:14px; }
+  .row{ display:flex; gap:10px; align-items:center; }
+  .between{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .muted{ color: var(--muted); font-size: 14px; }
+  .top{ display:flex; align-items:center; gap:12px; margin-bottom: 22px; }
+  .mark{ width:38px; height:38px; border-radius: 11px; background: var(--accent); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; box-shadow: 3px 3px 0 rgba(0,0,0,.25); }
+  .panel{ background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+  .panel-accent{ border-left: 5px solid var(--accent); }
+  .btn{ font: inherit; font-weight: 700; border: none; border-radius: 12px; padding: 13px 18px; cursor:pointer; transition: transform .08s ease; }
+  .btn:active{ transform: scale(0.97); }
+  .btn-primary{ background: var(--accent); color: #1b1220; }
+  .btn-ghost{ background: transparent; color: var(--text); border: 1px solid var(--line); }
+  .btn-soft{ background: var(--panel-2); color: var(--text); }
+  .btn-block{ width:100%; }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .btn-sm{ padding: 8px 12px; font-size: 13px; border-radius: 9px; }
+  input[type=text]{
+    width:100%; font: inherit; font-size: 15px; background: var(--panel-2); border: 1px solid var(--line);
+    color: var(--text); border-radius: 10px; padding: 12px 13px; outline: none;
+  }
+  input[type=text]:focus{ border-color: var(--accent); }
+  label.field{ display:flex; flex-direction:column; gap:6px; font-size: 13px; color: var(--muted); font-weight:600; }
+  .grid4{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tpl{ border: 2px solid var(--line); border-radius: 14px; padding: 14px; cursor:pointer; text-align:left; background: var(--panel-2); }
+  .tpl.active{ border-color: var(--tpl-color, var(--accent)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tpl-color, var(--accent)) 25%, transparent); }
+  .tpl .ic{ font-size: 22px; }
+  .qcard{ background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .qcard .qhead{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px; }
+  .opt-input{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .opt-dot{ width:14px; height:14px; border-radius:4px; flex-shrink:0; }
+  .code-badge{ font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 34px; font-weight: 800; letter-spacing: 0.12em; background: var(--panel-2); border: 2px dashed var(--accent); border-radius: 14px; padding: 18px; text-align:center; }
+  .pill{ display:inline-flex; align-items:center; gap:6px; background: var(--panel-2); border:1px solid var(--line); border-radius:999px; padding: 5px 12px; font-size:13px; font-weight:600; }
+  .answer-tile{ border:none; border-radius:14px; padding:20px 16px; font-size:17px; font-weight:700; text-align:left; cursor:pointer; color:#12132a; box-shadow: 4px 4px 0 rgba(0,0,0,.28); transition: transform .08s ease; }
+  .answer-tile:active{ transform: translate(2px,2px); box-shadow: 2px 2px 0 rgba(0,0,0,.28); }
+  .answer-tile:disabled{ opacity:.55; cursor:default; }
+  .bar-track{ height:10px; border-radius:999px; background: var(--panel-2); overflow:hidden; border:1px solid var(--line); }
+  .bar-fill{ height:100%; background: var(--accent); transition: width 1s linear; }
+  .lb-row{ display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px; background: var(--panel-2); border:1px solid var(--line); cursor:pointer; }
+  .lb-rank{ width:26px; text-align:center; font-weight:800; color: var(--muted); }
+  .review-row{ display:flex; gap:10px; align-items:flex-start; padding:12px; border-radius:10px; background: var(--panel); }
+  .tag-good{ color: var(--good); font-weight:700; }
+  .tag-bad{ color: var(--bad); font-weight:700; }
+  .icon-btn{ background:none; border:none; color: var(--muted); cursor:pointer; font-size:18px; padding:4px; }
+  .icon-btn:hover{ color: var(--bad); }
+  .toast{ position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background: var(--good); color:#08281c; font-weight:700; padding:10px 18px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.3); z-index: 50; }
+  .empty{ text-align:center; padding: 30px 16px; color: var(--muted); }
+  .link-btn{ background:none; border:none; color: var(--accent); font-weight:700; cursor:pointer; font: inherit; padding:0; }
+  .error-text{ color: var(--bad); font-size: 13px; font-weight:600; }
+  @media (max-width:480px){ .grid2, .grid4{ grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+(function(){
+
+  // ---------------- local persistence (per browser, real website now so localStorage is fine) ----------------
+  function lsGet(key, fallback){
+    try{ var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; }
+  }
+  function lsSet(key, value){ try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){} }
+
+  // ---------------- API helpers ----------------
+  async function apiGetQuiz(code){
+    var r = await fetch('/api/quiz?code=' + encodeURIComponent(code));
+    var data = await r.json();
+    if(!r.ok) throw new Error(data.error || 'Could not load quiz.');
+    return data;
+  }
+  async function apiCreateQuiz(payload){
+    var r = await fetch('/api/quiz', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    var data = await r.json();
+    if(!r.ok) throw new Error(data.error || 'Could not publish quiz.');
+    return data;
+  }
+  async function apiSubmit(payload){
+    var r = await fetch('/api/submission', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    var data = await r.json();
+    if(!r.ok) throw new Error(data.error || 'Could not submit.');
+    return data;
+  }
+  async function apiLeaderboard(code){
+    var r = await fetch('/api/submission?code=' + encodeURIComponent(code));
+    var data = await r.json();
+    if(!r.ok) throw new Error(data.error || 'Could not load results.');
+    return data;
+  }
+  async function apiOneResult(code, participantId){
+    var r = await fetch('/api/submission?code=' + encodeURIComponent(code) + '&participantId=' + encodeURIComponent(participantId));
+    var data = await r.json();
+    if(!r.ok) throw new Error(data.error || 'Result not found.');
+    return data;
+  }
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------------- templates ----------------
+  var TEMPLATES = {
+    math:      { label:'Math',       icon:'➗', color:'#8b7cf6' },
+    geography: { label:'Geography',  icon:'🌍', color:'#2fb6a6' },
+    science:   { label:'Science',    icon:'🧪', color:'#f5b942' },
+    general:   { label:'General',    icon:'✦',  color:'#ff6b5e' }
+  };
+  var OPT_COLORS = ['#ff6b5e','#2fb6a6','#f5b942','#8b7cf6'];
+  var OPT_SHAPES = ['▲','◆','●','■'];
+
+  function blankQuestion(){ return { text:'', options:['','','',''], correct:0 }; }
+  function blankDraft(){ return { title:'', subject:'general', timed:true, questions:[blankQuestion()] }; }
+
+  // ---------------- state ----------------
+  var state = { view:'home', toast:null };
+  var pollInterval = null, timerInterval = null;
+  function stopTimers(){
+    if(pollInterval){ clearInterval(pollInterval); pollInterval = null; }
+    if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+  }
+  function showToast(msg){ state.toast = msg; render(); setTimeout(function(){ state.toast = null; render(); }, 1800); }
+  function go(view, extra){ stopTimers(); state.view = view; if(extra) Object.assign(state, extra); render(); }
+
+  // ---------------- HOME ----------------
+  function openHome(){
+    state.myQuizzes = lsGet('quiz-arena-my-quizzes', []);
+    state.mySubs = lsGet('quiz-arena-my-submissions', []);
+    go('home');
+  }
+  function homeView(){
+    var quizzesHtml = state.myQuizzes.length ? state.myQuizzes.map(function(q){
+      return '<div class="lb-row" onclick="App.openHost(\''+q.code+'\')">' +
+        '<div style="font-size:20px">'+ (TEMPLATES[q.subject]||TEMPLATES.general).icon +'</div>' +
+        '<div style="flex:1"><div style="font-weight:700">'+esc(q.title)+'</div><div class="muted" style="font-size:12px">Code '+q.code+'</div></div>' +
+        '<div class="muted">›</div></div>';
+    }).join('') : '<div class="muted" style="font-size:13px">You haven\'t published a quiz yet.</div>';
+
+    var subsHtml = state.mySubs.length ? state.mySubs.map(function(s){
+      return '<div class="lb-row" onclick="App.reopenResult(\''+s.code+'\',\''+s.participantId+'\')">' +
+        '<div style="font-size:20px">🏁</div>' +
+        '<div style="flex:1"><div style="font-weight:700">'+esc(s.quizTitle)+'</div><div class="muted" style="font-size:12px">as '+esc(s.username)+' · '+s.score+' pts</div></div>' +
+        '<div class="muted">›</div></div>';
+    }).join('') : '';
+
+    return '' +
+    '<div class="top"><div class="mark">🎯</div><div><h1>Quiz Arena</h1><p>Build a quiz, get a link, watch the scores roll in.</p></div></div>' +
+    '<div class="stack">' +
+      '<div class="panel panel-accent stack">' +
+        '<h2>Host a quiz</h2><p>Create questions, pick a look, and publish a link you can send to anyone.</p>' +
+        '<button class="btn btn-primary btn-block" onclick="App.startCreate()">Create a quiz</button>' +
+      '</div>' +
+      '<div class="panel stack">' +
+        '<h2>Join a quiz</h2><p>Got a code or link from someone? Jump in — no account needed.</p>' +
+        '<button class="btn btn-soft btn-block" onclick="App.startJoin()">Enter a code</button>' +
+      '</div>' +
+      '<div class="panel stack"><h3>Your published quizzes</h3><div class="stack" style="gap:8px">'+quizzesHtml+'</div></div>' +
+      (subsHtml ? '<div class="panel stack"><h3>Your recent results</h3><div class="stack" style="gap:8px">'+subsHtml+'</div></div>' : '') +
+    '</div>';
+  }
+
+  // ---------------- CREATE ----------------
+  function startCreate(){ go('create', { draft: blankDraft(), createError:null, publishing:false }); }
+  function draftTitleInput(v){ state.draft.title = v; }
+  function draftTimedToggle(){ state.draft.timed = !state.draft.timed; render(); }
+  function selectTemplate(key){ state.draft.subject = key; render(); }
+  function addQuestion(){ state.draft.questions.push(blankQuestion()); render(); }
+  function removeQuestion(i){
+    if(state.draft.questions.length <= 1){ showToast('A quiz needs at least one question'); return; }
+    state.draft.questions.splice(i,1); render();
+  }
+  function qTextInput(i, v){ state.draft.questions[i].text = v; }
+  function optInput(i, j, v){ state.draft.questions[i].options[j] = v; }
+  function setCorrect(i, j){ state.draft.questions[i].correct = j; render(); }
+
+  function validateDraft(){
+    var d = state.draft;
+    if(!d.title.trim()) return 'Give your quiz a title.';
+    for(var i=0;i<d.questions.length;i++){
+      var q = d.questions[i];
+      if(!q.text.trim()) return 'Question '+(i+1)+' needs text.';
+      for(var j=0;j<4;j++){ if(!q.options[j].trim()) return 'Question '+(i+1)+' needs all 4 answers filled in.'; }
+    }
+    return null;
+  }
+
+  async function publishQuiz(){
+    var err = validateDraft();
+    if(err){ state.createError = err; render(); return; }
+    state.createError = null; state.publishing = true; render();
+    try{
+      var d = state.draft;
+      var result = await apiCreateQuiz({
+        title: d.title.trim(), subject: d.subject, timed: d.timed,
+        questions: d.questions.map(function(q){ return { text:q.text.trim(), options:q.options.map(function(o){return o.trim();}), correct:q.correct }; })
+      });
+      var mine = lsGet('quiz-arena-my-quizzes', []);
+      mine.unshift({ code: result.code, title: d.title.trim(), subject: d.subject, createdAt: Date.now() });
+      lsSet('quiz-arena-my-quizzes', mine);
+      var quiz = await apiGetQuiz(result.code);
+      state.publishing = false;
+      go('published', { publishedQuiz: quiz });
+    }catch(e){
+      state.publishing = false; state.createError = e.message; render();
+    }
+  }
+
+  function createView(){
+    var d = state.draft;
+    var tplCards = Object.keys(TEMPLATES).map(function(key){
+      var t = TEMPLATES[key]; var active = d.subject === key;
+      return '<button type="button" class="tpl'+(active?' active':'')+'" style="--tpl-color:'+t.color+'" onclick="App.selectTemplate(\''+key+'\')">' +
+        '<div class="ic">'+t.icon+'</div><div style="font-weight:700;margin-top:4px">'+t.label+'</div></button>';
+    }).join('');
+
+    var qHtml = d.questions.map(function(q, i){
+      var opts = q.options.map(function(o, j){
+        return '<div class="opt-input">' +
+          '<input type="radio" name="correct'+i+'" '+(q.correct===j?'checked':'')+' onchange="App.setCorrect('+i+','+j+')" title="Mark as correct answer" />' +
+          '<div class="opt-dot" style="background:'+OPT_COLORS[j]+'"></div>' +
+          '<input type="text" placeholder="Answer '+(j+1)+(j===0?' (select the dot for the correct one)':'')+'" value="'+esc(q.options[j])+'" oninput="App.optInput('+i+','+j+', this.value)" />' +
+        '</div>';
+      }).join('');
+      return '<div class="qcard">' +
+        '<div class="qhead"><h3 style="flex:1">Question '+(i+1)+'</h3>' +
+        (d.questions.length>1 ? '<button class="icon-btn" onclick="App.removeQuestion('+i+')" title="Remove question">✕</button>' : '') +
+        '</div>' +
+        '<label class="field" style="margin-bottom:10px"><input type="text" placeholder="Type the question…" value="'+esc(q.text)+'" oninput="App.qTextInput('+i+', this.value)" /></label>' +
+        opts +
+      '</div>';
+    }).join('<div style="height:2px"></div>');
+
+    return '' +
+    '<div class="row" style="margin-bottom:18px"><button class="link-btn" onclick="App.openHome()">← Back</button></div>' +
+    '<div class="stack">' +
+      '<div><h2>Create a quiz</h2><p>Pick a template, add your questions, then publish for a shareable link.</p></div>' +
+      '<div class="panel stack">' +
+        '<label class="field">Quiz title<input type="text" placeholder="e.g. Fractions Friday" value="'+esc(d.title)+'" oninput="App.draftTitleInput(this.value)" /></label>' +
+        '<label class="field">Template<div class="grid4" style="margin-top:4px">'+tplCards+'</div></label>' +
+        '<label class="row" style="cursor:pointer"><input type="checkbox" '+(d.timed?'checked':'')+' onchange="App.draftTimedToggle()" /> <span>20-second timer per question (faster answers score more)</span></label>' +
+      '</div>' +
+      '<div class="stack">'+qHtml+'</div>' +
+      '<button class="btn btn-soft btn-block" onclick="App.addQuestion()">+ Add another question</button>' +
+      (state.createError ? '<div class="error-text">'+esc(state.createError)+'</div>' : '') +
+      '<button class="btn btn-primary btn-block" '+(state.publishing?'disabled':'')+' onclick="App.publishQuiz()">'+(state.publishing?'Publishing…':'Publish quiz')+'</button>' +
+    '</div>';
+  }
+
+  // ---------------- PUBLISHED ----------------
+  function shareLink(code){ return location.origin + '/?code=' + code; }
+  function publishedView(){
+    var q = state.publishedQuiz;
+    return '' +
+    '<div class="stack">' +
+      '<div class="top"><div class="mark">🎉</div><div><h1>Published!</h1><p>Share this link — friends can join without an account.</p></div></div>' +
+      '<div class="panel" style="text-align:center;word-break:break-all"><div class="muted" style="font-size:12px;margin-bottom:6px">Share link</div><div style="font-weight:700">'+esc(shareLink(q.code))+'</div></div>' +
+      '<div class="code-badge">'+q.code+'</div>' +
+      '<button class="btn btn-soft btn-block" onclick="App.copyLink(\''+q.code+'\')">Copy link</button>' +
+      '<div class="row"><button class="btn btn-primary" style="flex:1" onclick="App.openHost(\''+q.code+'\')">View live results</button>' +
+      '<button class="btn btn-ghost" style="flex:1" onclick="App.startCreate()">Create another</button></div>' +
+      '<button class="link-btn" onclick="App.openHome()">Back to home</button>' +
+    '</div>';
+  }
+  function copyLink(code){
+    try{ navigator.clipboard.writeText(shareLink(code)); showToast('Link copied'); }
+    catch(e){ showToast('Copy this: ' + shareLink(code)); }
+  }
+
+  // ---------------- HOST DASHBOARD ----------------
+  async function openHost(code){
+    go('host', { hostCode: code, hostQuiz: null, submissions: [], expandedSub: null });
+    try{
+      state.hostQuiz = await apiGetQuiz(code);
+      await refreshSubmissions();
+    }catch(e){ state.hostError = e.message; }
+    render();
+    pollInterval = setInterval(refreshSubmissions, 4000);
+  }
+  async function refreshSubmissions(){
+    if(!state.hostCode) return;
+    try{
+      state.submissions = await apiLeaderboard(state.hostCode);
+      if(state.view === 'host') render();
+    }catch(e){ /* silent on background poll */ }
+  }
+  function toggleExpand(pid){ state.expandedSub = (state.expandedSub === pid) ? null : pid; render(); }
+
+  function hostView(){
+    var quiz = state.hostQuiz;
+    if(!quiz) return '<div class="row" style="margin-bottom:18px"><button class="link-btn" onclick="App.openHome()">← Back</button></div><div class="empty">'+(state.hostError?esc(state.hostError):'Loading quiz…')+'</div>';
+    var theme = TEMPLATES[quiz.subject] || TEMPLATES.general;
+    var rows = state.submissions.map(function(s, idx){
+      var expanded = state.expandedSub === s.participantId;
+      var reviewHtml = '';
+      if(expanded){
+        reviewHtml = '<div class="stack" style="margin-top:10px">' + quiz.questions.map(function(q, qi){
+          var picked = s.answers[qi]; var correct = picked === q.correct;
+          var pickedText = (picked === null || picked === undefined) ? 'No answer' : q.options[picked];
+          return '<div class="review-row"><div style="flex:1"><div style="font-weight:700;font-size:13px">'+esc(q.text)+'</div>' +
+            '<div class="muted" style="font-size:13px">Answered: '+esc(pickedText)+'</div>' +
+            (correct ? '' : '<div class="muted" style="font-size:13px">Correct: '+esc(q.options[q.correct])+'</div>') +
+            '</div><div class="'+(correct?'tag-good':'tag-bad')+'">'+(correct?'✓':'✗')+'</div></div>';
+        }).join('') + '</div>';
+      }
+      return '<div class="lb-row" style="align-items:flex-start;flex-direction:column" onclick="App.toggleExpand(\''+s.participantId+'\')">' +
+        '<div class="row" style="width:100%"><div class="lb-rank">'+(idx+1)+'</div>' +
+        '<div style="flex:1"><div style="font-weight:700">'+esc(s.username)+'</div><div class="muted" style="font-size:12px">'+s.correctCount+'/'+quiz.questions.length+' correct</div></div>' +
+        '<div style="font-weight:800;font-size:18px">'+s.score+'</div></div>' + reviewHtml + '</div>';
+    }).join('');
+
+    return '' +
+    '<div class="row between" style="margin-bottom:14px"><button class="link-btn" onclick="App.openHome()">← Back</button><button class="btn-sm btn btn-ghost" onclick="App.refreshSubmissions()">Refresh</button></div>' +
+    '<div class="stack">' +
+      '<div class="panel" style="border-left:5px solid '+theme.color+'">' +
+        '<div class="row" style="margin-bottom:6px"><div style="font-size:22px">'+theme.icon+'</div><h2 style="flex:1">'+esc(quiz.title)+'</h2></div>' +
+        '<div class="row"><div class="pill">Code '+quiz.code+'</div><div class="pill">'+quiz.questions.length+' questions</div><div class="pill">'+state.submissions.length+' joined</div></div>' +
+      '</div>' +
+      '<button class="btn btn-soft btn-block" onclick="App.copyLink(\''+quiz.code+'\')">Copy share link</button>' +
+      '<h3>Leaderboard</h3>' +
+      (rows ? '<div class="stack" style="gap:8px">'+rows+'</div>' : '<div class="empty">No one has finished yet. Share the link above.</div>') +
+    '</div>';
+  }
+
+  // ---------------- JOIN ----------------
+  function startJoin(prefill){ go('join', { joinCodeVal: prefill||'', joinError:null }); }
+  function joinCodeInput(v){ state.joinCodeVal = v.toUpperCase(); }
+  async function submitJoinCode(){
+    var code = (state.joinCodeVal||'').trim().toUpperCase();
+    if(!code){ state.joinError = 'Enter a code first.'; render(); return; }
+    try{
+      var quiz = await apiGetQuiz(code);
+      state.joinError = null;
+      go('username', { joinQuiz: quiz, usernameVal:'', usernameError:null });
+    }catch(e){ state.joinError = e.message; render(); }
+  }
+  function usernameInput(v){ state.usernameVal = v; }
+  function submitUsername(){
+    var name = (state.usernameVal||'').trim();
+    if(!name){ state.usernameError = 'Pick a username.'; render(); return; }
+    if(name.length > 18){ state.usernameError = 'Keep it under 18 characters.'; render(); return; }
+    state.usernameError = null;
+    startPlay(state.joinQuiz, name);
+  }
+
+  function joinView(){
+    return '' +
+    '<div class="row" style="margin-bottom:18px"><button class="link-btn" onclick="App.openHome()">← Back</button></div>' +
+    '<div class="stack">' +
+      '<div class="top"><div class="mark">🔑</div><div><h1>Join a quiz</h1><p>Enter the code you were sent.</p></div></div>' +
+      '<div class="panel stack">' +
+        '<label class="field">Quiz code<input type="text" style="text-transform:uppercase;letter-spacing:.1em;font-weight:800;font-size:20px;text-align:center" maxlength="6" placeholder="ABC123" value="'+esc(state.joinCodeVal||'')+'" oninput="App.joinCodeInput(this.value)" /></label>' +
+        (state.joinError ? '<div class="error-text">'+esc(state.joinError)+'</div>' : '') +
+        '<button class="btn btn-primary btn-block" onclick="App.submitJoinCode()">Continue</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function usernameView(){
+    var quiz = state.joinQuiz; var theme = TEMPLATES[quiz.subject] || TEMPLATES.general;
+    return '' +
+    '<div class="row" style="margin-bottom:18px"><button class="link-btn" onclick="App.startJoin()">← Back</button></div>' +
+    '<div class="stack">' +
+      '<div class="panel" style="border-left:5px solid '+theme.color+'"><div class="row"><div style="font-size:20px">'+theme.icon+'</div><h2>'+esc(quiz.title)+'</h2></div><p style="margin-top:6px">'+quiz.questions.length+' questions'+(quiz.timed?' · timed':'')+'</p></div>' +
+      '<div class="panel stack">' +
+        '<label class="field">Pick a username<input type="text" maxlength="18" placeholder="e.g. QuizWizard" value="'+esc(state.usernameVal||'')+'" oninput="App.usernameInput(this.value)" /></label>' +
+        '<p style="font-size:12px">No login needed. Keep it clean — inappropriate usernames aren\'t allowed.</p>' +
+        (state.usernameError ? '<div class="error-text">'+esc(state.usernameError)+'</div>' : '') +
+        '<button class="btn btn-primary btn-block" onclick="App.submitUsername()">Start quiz</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // ---------------- PLAY ----------------
+  function startPlay(quiz, username){
+    state.play = { quiz: quiz, username: username, idx: 0, answers: new Array(quiz.questions.length).fill(null), timeLeft: 20, locked: false };
+    go('play');
+    if(quiz.timed) startQuestionTimer();
+  }
+  function startQuestionTimer(){
+    if(timerInterval) clearInterval(timerInterval);
+    state.play.timeLeft = 20;
+    timerInterval = setInterval(function(){
+      state.play.timeLeft -= 1;
+      if(state.play.timeLeft <= 0){ clearInterval(timerInterval); timerInterval = null; pickAnswer(null); }
+      else render();
+    }, 1000);
+  }
+  function pickAnswer(optIdx){
+    if(state.play.locked) return;
+    state.play.locked = true;
+    state.play.answers[state.play.idx] = optIdx;
+    if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+    render();
+    setTimeout(advanceQuestion, 650);
+  }
+  function advanceQuestion(){
+    var p = state.play;
+    if(p.idx < p.quiz.questions.length - 1){
+      p.idx += 1; p.locked = false; render();
+      if(p.quiz.timed) startQuestionTimer();
+    } else finishPlay();
+  }
+  async function finishPlay(){
+    var p = state.play, quiz = p.quiz;
+    try{
+      var sub = await apiSubmit({ code: quiz.code, username: p.username, answers: p.answers });
+      var mine = lsGet('quiz-arena-my-submissions', []);
+      mine.unshift({ code: quiz.code, quizTitle: quiz.title, participantId: sub.participantId, username: sub.username, score: sub.score });
+      lsSet('quiz-arena-my-submissions', mine);
+      go('result', { resultQuiz: quiz, resultSub: sub, leaderboard: null });
+    }catch(e){ showToast(e.message); go('home'); openHome(); }
+  }
+
+  function playView(){
+    var p = state.play, quiz = p.quiz, q = quiz.questions[p.idx];
+    var theme = TEMPLATES[quiz.subject] || TEMPLATES.general;
+    var picked = p.answers[p.idx];
+    var tiles = q.options.map(function(opt, j){
+      var isPicked = picked === j, showCorrectness = p.locked;
+      var mark = '';
+      if(showCorrectness){ if(j === q.correct) mark = ' ✓'; else if(isPicked) mark = ' ✗'; }
+      return '<button class="answer-tile" style="background:'+OPT_COLORS[j]+(showCorrectness && j!==q.correct && !isPicked ? ';opacity:.45' : '')+'" '+(p.locked?'disabled':'')+' onclick="App.pickAnswer('+j+')">'+OPT_SHAPES[j]+' '+esc(opt)+mark+'</button>';
+    }).join('');
+    var pct = quiz.timed ? Math.max(0, (p.timeLeft/20)*100) : 100;
+    return '' +
+    '<div class="stack">' +
+      '<div class="between"><div class="pill" style="background:'+theme.color+';color:#1b1220">'+theme.icon+' '+esc(quiz.title)+'</div><div class="pill">Q'+(p.idx+1)+'/'+quiz.questions.length+'</div></div>' +
+      (quiz.timed ? '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div>' : '') +
+      '<div class="panel"><h2>'+esc(q.text)+'</h2></div>' +
+      '<div class="grid2">'+tiles+'</div>' +
+    '</div>';
+  }
+
+  // ---------------- RESULT ----------------
+  function resultView(){
+    var quiz = state.resultQuiz, sub = state.resultSub;
+    var theme = TEMPLATES[quiz.subject] || TEMPLATES.general;
+    var review = quiz.questions.map(function(q, i){
+      var picked = sub.answers[i]; var correct = picked === q.correct;
+      var pickedText = (picked === null || picked === undefined) ? 'No answer' : q.options[picked];
+      return '<div class="review-row"><div style="flex:1"><div style="font-weight:700;font-size:13px">'+esc(q.text)+'</div>' +
+        '<div class="muted" style="font-size:13px">You answered: '+esc(pickedText)+'</div>' +
+        (correct ? '' : '<div class="muted" style="font-size:13px">Correct answer: '+esc(q.options[q.correct])+'</div>') +
+        '</div><div class="'+(correct?'tag-good':'tag-bad')+'">'+(correct?'✓':'✗')+'</div></div>';
+    }).join('');
+    var lb = '';
+    if(state.leaderboard){
+      lb = '<div class="stack" style="gap:8px">' + state.leaderboard.map(function(s, i){
+        return '<div class="lb-row" style="cursor:default"><div class="lb-rank">'+(i+1)+'</div><div style="flex:1;font-weight:700">'+esc(s.username)+(s.participantId===sub.participantId?' (you)':'')+'</div><div style="font-weight:800">'+s.score+'</div></div>';
+      }).join('') + '</div>';
+    }
+    return '' +
+    '<div class="stack">' +
+      '<div class="top"><div class="mark">🏁</div><div><h1>'+sub.correctCount+'/'+sub.total+' correct</h1><p>Nice run, '+esc(sub.username)+'.</p></div></div>' +
+      '<div class="panel" style="border-left:5px solid '+theme.color+';text-align:center"><div class="muted" style="font-size:13px">Score</div><div style="font-size:40px;font-weight:800">'+sub.score+'</div></div>' +
+      '<h3>Your answers</h3><div class="stack" style="gap:8px">'+review+'</div>' +
+      (state.leaderboard ? '<h3>Leaderboard</h3>'+lb : '<button class="btn btn-soft btn-block" onclick="App.loadLeaderboard()">View leaderboard</button>') +
+      '<button class="btn btn-primary btn-block" onclick="App.openHome()">Back to home</button>' +
+    '</div>';
+  }
+  async function loadLeaderboard(){
+    try{ state.leaderboard = await apiLeaderboard(state.resultQuiz.code); render(); }
+    catch(e){ showToast(e.message); }
+  }
+  async function reopenResult(code, participantId){
+    try{
+      var quiz = await apiGetQuiz(code);
+      var sub = await apiOneResult(code, participantId);
+      go('result', { resultQuiz: quiz, resultSub: sub, leaderboard: null });
+    }catch(e){ showToast('That result is no longer available'); }
+  }
+
+  // ---------------- render ----------------
+  function render(){
+    var html = '';
+    switch(state.view){
+      case 'create': html = createView(); break;
+      case 'published': html = publishedView(); break;
+      case 'host': html = hostView(); break;
+      case 'join': html = joinView(); break;
+      case 'username': html = usernameView(); break;
+      case 'play': html = playView(); break;
+      case 'result': html = resultView(); break;
+      default: html = homeView();
+    }
+    if(state.toast) html += '<div class="toast">'+esc(state.toast)+'</div>';
+    document.getElementById('app').innerHTML = html;
+  }
+
+  window.App = {
+    openHome: openHome, startCreate: startCreate, draftTitleInput: draftTitleInput,
+    draftTimedToggle: draftTimedToggle, selectTemplate: selectTemplate,
+    addQuestion: addQuestion, removeQuestion: removeQuestion, qTextInput: qTextInput,
+    optInput: optInput, setCorrect: setCorrect, publishQuiz: publishQuiz, copyLink: copyLink,
+    openHost: openHost, refreshSubmissions: refreshSubmissions, toggleExpand: toggleExpand,
+    startJoin: startJoin, joinCodeInput: joinCodeInput, submitJoinCode: submitJoinCode,
+    usernameInput: usernameInput, submitUsername: submitUsername,
+    pickAnswer: pickAnswer, loadLeaderboard: loadLeaderboard, reopenResult: reopenResult
+  };
+
+  // Auto-join if opened via a shared link like yoursite.vercel.app/?code=ABC123
+  var params = new URLSearchParams(location.search);
+  var urlCode = params.get('code');
+  openHome();
+  if(urlCode){
+    startJoin(urlCode.toUpperCase());
+    submitJoinCode();
+  }
+})();
+</script>
+</body>
+</html>
